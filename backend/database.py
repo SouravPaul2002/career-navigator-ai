@@ -1,9 +1,6 @@
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
-from dotenv import load_dotenv
-
-load_dotenv()
 
 MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 

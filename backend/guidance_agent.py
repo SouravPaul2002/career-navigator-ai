@@ -1,20 +1,18 @@
 import os
 import json
 from typing import Optional, List, Dict
-from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from ai_schema.schema import CareerRoadmap
 from pydantic import BaseModel, Field
 
-load_dotenv()
-
-if "GOOGLE_API_KEY" not in os.environ:
-    print("Warning: GOOGLE_API_KEY not found. Career guidance features will fail.")
+gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+if not gemini_key:
+    print("Warning: GEMINI_API_KEY not found. Career guidance features will fail.")
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
-    google_api_key=os.environ.get("GOOGLE_API_KEY", ""),
+    google_api_key=gemini_key or "dummy_key_for_dev_startup",
     temperature=0.7 
 )
 

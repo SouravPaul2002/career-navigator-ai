@@ -1,19 +1,15 @@
 import os
-import getpass
 from typing import List, Dict
-from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-load_dotenv()
-
-if "GOOGLE_API_KEY" not in os.environ:
-    # Use a dummy key for development if not present
-    print("Warning: GOOGLE_API_KEY not found. Mock interview features will fail.")
+gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+if not gemini_key:
+    print("Warning: GEMINI_API_KEY not found. Mock interview features will fail.")
 
 llm = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash",
-    google_api_key=os.environ.get("GOOGLE_API_KEY", ""),
+    google_api_key=gemini_key or "dummy_key_for_dev_startup",
     temperature=0.7 # Slight creativity for conversation
 )
 

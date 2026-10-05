@@ -1,3 +1,13 @@
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables once in one place
+_env_path = Path(__file__).resolve().parent / ".env"
+if _env_path.exists():
+    load_dotenv(dotenv_path=_env_path)
+else:
+    load_dotenv()
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
