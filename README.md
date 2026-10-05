@@ -143,3 +143,23 @@ cd frontend
 npm run lint
 npm run build
 ```
+
+---
+
+## Running with Docker Compose
+
+You can optionally run MongoDB and the backend using Docker Compose:
+
+1. Configure your environment variables in `.env` (or pass `SECRET_KEY` and `GEMINI_API_KEY`):
+   ```bash
+   docker compose up --build
+   ```
+2. The backend service will wait for MongoDB to become healthy and start on `http://localhost:8000`.
+
+---
+
+## Continuous Integration (CI)
+
+A GitHub Actions workflow is configured in [`.github/workflows/ci.yml`](.github/workflows/ci.yml) to automatically validate all pull requests and pushes to `main`:
+- **Backend Job**: Sets up Python 3.11, installs dependencies, and runs `pytest`.
+- **Frontend Job**: Sets up Node.js 20, installs dependencies (`npm ci`), runs `npm run lint` (ESLint), and compiles the application (`npm run build`).
