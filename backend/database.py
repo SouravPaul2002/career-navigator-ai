@@ -6,6 +6,8 @@ MONGODB_URI = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
 
 async def init_db():
     client = AsyncIOMotorClient(MONGODB_URI)
+    if hasattr(client, "delegate") and hasattr(client.delegate, "append_metadata"):
+        client.append_metadata = client.delegate.append_metadata
     # Import models here to avoid circular imports during startup
     from models import User, UserRoadmap, InterviewSession, ResumeAnalysis, UserRoadmapStep
     
