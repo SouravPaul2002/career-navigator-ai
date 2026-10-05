@@ -68,10 +68,10 @@ const CareerGuidance: React.FC = () => {
     setCheckingHistory(true);
     try {
       // 1. Fetch Resume History (Roles)
-      const historyRes = await apiClient.get("/career/history");
+      const historyRes = await apiClient.get<Array<{ domain?: string }>>("/career/history");
       const roles = Array.from(
-        new Set(historyRes.data.map((item: any) => item.domain))
-      ).filter((r: any) => r && r !== "N/A") as string[];
+        new Set(historyRes.data.map((item) => item.domain))
+      ).filter((r): r is string => Boolean(r && r !== "N/A"));
       setAvailableRoles(roles);
 
       // 2. Fetch Active Roadmap (if any)
@@ -149,7 +149,7 @@ const CareerGuidance: React.FC = () => {
     try {
       const res = await apiClient.post("/guidance/details", { topic, role });
       setDetailContent(res.data.content);
-    } catch (error) {
+    } catch {
       setDetailContent("Failed to load details.");
     } finally {
       setDetailLoading(false);
@@ -166,7 +166,7 @@ const CareerGuidance: React.FC = () => {
     try {
       const res = await apiClient.post("/guidance/quiz", { topic });
       setQuizQuestions(res.data);
-    } catch (error) {
+    } catch {
       console.error("Error loading quiz");
     } finally {
       setQuizLoading(false);

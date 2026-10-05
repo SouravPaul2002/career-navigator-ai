@@ -16,6 +16,32 @@ interface Session {
   is_active: boolean;
 }
 
+interface SpeechRecognitionEvent {
+  results: {
+    [index: number]: {
+      [index: number]: {
+        transcript: string;
+      };
+    };
+  };
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+}
+
+interface ISpeechRecognition {
+  lang: string;
+  interimResults: boolean;
+  maxAlternatives: number;
+  onstart: () => void;
+  onresult: (event: SpeechRecognitionEvent) => void;
+  onerror: (event: SpeechRecognitionErrorEvent) => void;
+  onend: () => void;
+  start: () => void;
+  stop: () => void;
+}
+
 const MockInterview: React.FC = () => {
   const [jobRole, setJobRole] = useState("");
   const [session, setSession] = useState<Session | null>(null);
@@ -26,7 +52,7 @@ const MockInterview: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [showVoiceConfirm, setShowVoiceConfirm] = useState(false);
   const [voiceText, setVoiceText] = useState("");
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
 
@@ -53,12 +79,12 @@ const MockInterview: React.FC = () => {
   const checkResumeHistory = async () => {
     setCheckingHistory(true);
     try {
-      const response = await apiClient.get("/career/history");
+      const response = await apiClient.get<Array<{ domain?: string }>>("/career/history");
       // Extract unique domains from history
       const history = response.data;
       const roles = Array.from(
-        new Set(history.map((item: any) => item.domain))
-      ).filter((r: any) => r && r !== "N/A") as string[];
+        new Set(history.map((item) => item.domain))
+      ).filter((r): r is string => Boolean(r && r !== "N/A"));
       setAvailableRoles(roles);
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -135,15 +161,20 @@ const MockInterview: React.FC = () => {
   // --- Voice Input Logic ---
 
   const startRecording = () => {
-    if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
+    const speechWindow = window as unknown as {
+      SpeechRecognition?: new () => ISpeechRecognition;
+      webkitSpeechRecognition?: new () => ISpeechRecognition;
+    };
+
+    const SpeechRecognition =
+      speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
       alert("Voice input is not supported in this browser.");
       return;
     }
-
-    const SpeechRecognition =
-      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     
-    const recognition = new SpeechRecognition();
+    const recognition: ISpeechRecognition = new SpeechRecognition();
     recognition.lang = "en-US";
     recognition.interimResults = false;
     recognition.maxAlternatives = 1;
@@ -152,14 +183,14 @@ const MockInterview: React.FC = () => {
       setIsRecording(true);
     };
 
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const transcript = event.results[0][0].transcript;
       setVoiceText(transcript);
       setShowVoiceConfirm(true);
       setIsRecording(false);
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       console.error("Speech recognition error", event.error);
       setIsRecording(false);
       alert("Error recognizing voice. Please try again.");
