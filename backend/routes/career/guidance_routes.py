@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from auth import get_current_user
-from models import User, UserRoadmap, UserRoadmapStep
+from models import User, UserRoadmap, UserRoadmapStep, StepStatus
 from guidance_agent import generate_roadmap, get_topic_details, generate_quiz
 from ai_schema.schema import CareerRoadmap
 
@@ -20,7 +20,7 @@ class QuizRequest(BaseModel):
     topic: str
 
 class StepStatusUpdate(BaseModel):
-    status: str # todo, in_progress, done
+    status: StepStatus
 
 class UserRoadmapRead(BaseModel):
     id: str
@@ -55,7 +55,7 @@ async def save_roadmap(
             title=step.step_title,
             description=step.description,
             estimated_duration=step.estimated_duration,
-            status="todo",
+            status=StepStatus.TODO,
             order_index=idx
         ))
 
@@ -81,14 +81,30 @@ async def get_active_roadmap(
     if not roadmap:
         return None
     
-    # Sort steps by order_index just in case, though list order is preserved
     roadmap.steps.sort(key=lambda x: x.order_index)
     
     return {
         "id": str(roadmap.id),
         "role": roadmap.role,
-        "steps": [step.dict() for step in roadmap.steps]
+        "steps": [step.model_dump() for step in roadmap.steps]
     }
+
+@router.get("/steps/{step_id}")
+async def get_step_detail(
+    step_id: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Get details of a specific step belonging to the current user."""
+    roadmap = await UserRoadmap.find_one(
+        UserRoadmap.user_id == str(current_user.id),
+        UserRoadmap.steps.id == step_id
+    )
+    if not roadmap:
+        raise HTTPException(status_code=404, detail="Step not found")
+    for step in roadmap.steps:
+        if step.id == step_id:
+            return step.model_dump()
+    raise HTTPException(status_code=404, detail="Step not found")
 
 @router.patch("/steps/{step_id}")
 async def update_step_status(
@@ -97,8 +113,6 @@ async def update_step_status(
     current_user: User = Depends(get_current_user)
 ):
     """Update the status of a specific step."""
-    # Find the roadmap containing this step
-    # We filter by user_id to ensure ownership
     roadmap = await UserRoadmap.find_one(
         UserRoadmap.user_id == str(current_user.id),
         UserRoadmap.steps.id == step_id
@@ -107,7 +121,6 @@ async def update_step_status(
     if not roadmap:
         raise HTTPException(status_code=404, detail="Step not found or access denied")
         
-    # Update the specific step in the list
     step_found = False
     for step in roadmap.steps:
         if step.id == step_id:

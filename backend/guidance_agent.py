@@ -76,8 +76,7 @@ def generate_quiz(topic: str) -> List[Dict]:
     chain = prompt | structured_llm
     try:
         result = chain.invoke({"topic": topic})
-        # Convert Pydantic model to simple dict list
-        return [q.dict() for q in result.questions]
+        return [q.model_dump() for q in result.questions]
     except Exception as e:
         print(f"Error generating quiz: {e}")
         return []

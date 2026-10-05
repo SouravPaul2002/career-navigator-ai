@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from datetime import datetime
 
+from beanie import PydanticObjectId
 from auth import get_current_user
 from models import User, InterviewSession, InterviewMessage
 from interview_agent import generate_interview_response
@@ -32,9 +33,6 @@ async def start_session(
     current_user: User = Depends(get_current_user)
 ):
     """Start a new interview session."""
-    # Deactivate any previous active sessions for this user (optional)
-    # await InterviewSession.find(InterviewSession.user_id == str(current_user.id)).set({InterviewSession.is_active: False})
-    
     greeting_text = f"Hello! I see you're applying for the {request.job_role} position. Let's start with a brief introduction about yourself."
     initial_message = InterviewMessage(
         sender="ai",
@@ -76,10 +74,9 @@ async def get_messages(
     current_user: User = Depends(get_current_user)
 ):
     """Get chat history for a specific session."""
-    session = await InterviewSession.find_one(InterviewSession.id == session_id if len(session_id) == 24 else None)
-    if not session:
-        session = await InterviewSession.get(session_id)
-
+    if not PydanticObjectId.is_valid(session_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = await InterviewSession.get(PydanticObjectId(session_id))
     if not session or session.user_id != str(current_user.id):
         raise HTTPException(status_code=404, detail="Session not found")
         
@@ -92,11 +89,9 @@ async def chat(
     current_user: User = Depends(get_current_user)
 ):
     """Send a message to the interviewer and get a response."""
-    # Verify session
-    session = await InterviewSession.find_one(InterviewSession.id == session_id if len(session_id) == 24 else None)
-    if not session:
-         session = await InterviewSession.get(session_id)
-
+    if not PydanticObjectId.is_valid(session_id):
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = await InterviewSession.get(PydanticObjectId(session_id))
     if not session or session.user_id != str(current_user.id):
         raise HTTPException(status_code=404, detail="Session not found")
     

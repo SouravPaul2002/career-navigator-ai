@@ -5,6 +5,7 @@ from typing import List
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from starlette.concurrency import run_in_threadpool
 from resume_analyzer import invoke_agent
+from beanie import PydanticObjectId
 from auth import get_current_user
 from models import User, ResumeAnalysis
 
@@ -95,14 +96,10 @@ async def get_analysis_detail(
     current_user: User = Depends(get_current_user)
 ):
     """Fetch details of a specific past analysis."""
-    analysis = await ResumeAnalysis.find_one(ResumeAnalysis.id == analysis_id if len(analysis_id) == 24 else None) 
-    # Beanie handles ObjectId conversion automatically if we pass the ObjectId, but if we query by 'id', it usually expects ObjectId type or string if configured.
-    # Actually, simpler: await ResumeAnalysis.get(analysis_id)
+    if not PydanticObjectId.is_valid(analysis_id):
+        raise HTTPException(status_code=404, detail="Analysis not found")
     
-    if not analysis:
-        # try finding by custom query if .get() fails or if we want to ensure ownership
-        analysis = await ResumeAnalysis.get(analysis_id)
-    
+    analysis = await ResumeAnalysis.get(PydanticObjectId(analysis_id))
     if not analysis or analysis.user_id != str(current_user.id):
         raise HTTPException(status_code=404, detail="Analysis not found")
     

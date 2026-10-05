@@ -1,9 +1,24 @@
-from typing import Optional, List
-from beanie import Document, Indexed
-from pydantic import BaseModel, Field, validator
+from enum import Enum
 import re
-from datetime import datetime
+from datetime import datetime, timezone
+from typing import Optional, List
+from beanie import Document, Indexed, PydanticObjectId
+from pydantic import BaseModel, Field, field_validator
 from bson import ObjectId
+
+class StepStatus(str, Enum):
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    DONE = "done"
+
+def validate_password_strength(password: str) -> str:
+    if len(password) < 8:
+        raise ValueError("Password must be at least 8 characters long")
+    if not re.search(r"[A-Za-z]", password):
+        raise ValueError("Password must contain at least one letter")
+    if not re.search(r"\d", password):
+        raise ValueError("Password must contain at least one number")
+    return password
 
 # Shared properties
 class UserBase(BaseModel):
@@ -22,21 +37,17 @@ class User(Document, UserBase):
 class UserCreate(UserBase):
     password: str
     
-    @validator('password')
-    def password_strength(cls, v):
-        if len(v) < 8:
-            raise ValueError('Password must be at least 8 characters long')
-        if not re.search(r'[A-Za-z]', v):
-            raise ValueError('Password must contain at least one letter')
-        if not re.search(r'\d', v):
-            raise ValueError('Password must contain at least one number')
-        return v
+    @field_validator("password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 # Properties to return via API
 class UserRead(UserBase):
     id: str
 
-    @validator("id", pre=True, always=True)
+    @field_validator("id", mode="before")
+    @classmethod
     def parse_id(cls, v):
         return str(v)
 
@@ -48,6 +59,11 @@ class UserUpdate(BaseModel):
 class PasswordChange(BaseModel):
     old_password: str
     new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def password_strength(cls, v: str) -> str:
+        return validate_password_strength(v)
 
 # Token schemas
 class Token(BaseModel):
@@ -62,7 +78,7 @@ class ResumeAnalysis(Document):
     user_id: Indexed(str) # type: ignore
     filename: str
     analysis_data: dict
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     class Settings:
         name = "resume_analyses"
@@ -71,12 +87,12 @@ class ResumeAnalysis(Document):
 class InterviewMessage(BaseModel):
     sender: str  # "user" or "ai"
     content: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 class InterviewSession(Document):
     user_id: Indexed(str) # type: ignore
     job_role: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_active: bool = Field(default=True)
     messages: List[InterviewMessage] = []
 
@@ -89,13 +105,13 @@ class UserRoadmapStep(BaseModel):
     title: str
     description: str
     estimated_duration: str
-    status: str = "todo" # todo, in_progress, done
+    status: StepStatus = StepStatus.TODO
     order_index: int
 
 class UserRoadmap(Document):
     user_id: Indexed(str) # type: ignore
     role: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     is_active: bool = Field(default=True)
     steps: List[UserRoadmapStep] = []
 
