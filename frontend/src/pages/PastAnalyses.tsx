@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/layout/Layout";
+import apiClient from "../api/apiClient";
 
 interface HistoryItem {
-  id: number;
+  id: string | number;
   filename: string;
   created_at: string;
   score: number;
@@ -40,46 +41,24 @@ const PastAnalyses: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/career/history", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch history");
-      }
-
-      const data = await response.json();
-      setHistory(data);
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+      const response = await apiClient.get("/career/history");
+      setHistory(response.data);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(axiosError.response?.data?.detail || axiosError.message || "An error occurred");
     } finally {
       setLoading(false);
     }
   };
 
-  const fetchDetail = async (id: number) => {
-    const token = localStorage.getItem("access_token");
+  const fetchDetail = async (id: string | number) => {
     try {
-      const response = await fetch(
-        `http://localhost:8000/career/analysis/${id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to fetch analysis details");
-      }
-
-      const data = await response.json();
-      setSelectedAnalysis(data);
+      const response = await apiClient.get(`/career/analysis/${id}`);
+      setSelectedAnalysis(response.data);
       setViewingDetail(true);
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
+      alert(axiosError.response?.data?.detail || axiosError.message || "Failed to fetch analysis details");
     }
   };
 

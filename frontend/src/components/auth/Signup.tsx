@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import apiClient from "../../api/apiClient";
 
 const Signup: React.FC = () => {
   const [name, setName] = useState("");
@@ -24,41 +25,25 @@ const Signup: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch("http://localhost:8000/users/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password, name }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Signup failed. Please try again.");
-      }
-
-      const userData = await response.json();
+      const response = await apiClient.post("/users/signup", { email, password, name });
+      const userData = response.data;
 
       // After successful signup, log the user in
       const formData = new FormData();
       formData.append("username", email);
       formData.append("password", password);
 
-      const loginResponse = await fetch("http://localhost:8000/users/login", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (loginResponse.ok) {
-        const loginData = await loginResponse.json();
-        localStorage.setItem("access_token", loginData.access_token);
+      const loginResponse = await apiClient.post("/users/login", formData);
+      if (loginResponse.data) {
+        localStorage.setItem("access_token", loginResponse.data.access_token);
         localStorage.setItem("user", JSON.stringify(userData));
       }
 
       setIsLoading(false);
       navigate("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Signup failed. Please try again.");
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(axiosError.response?.data?.detail || axiosError.message || "Signup failed. Please try again.");
       setIsLoading(false);
     }
   };

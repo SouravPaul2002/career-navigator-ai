@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import apiClient from "../../api/apiClient";
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -32,42 +33,26 @@ const Login: React.FC = () => {
         localStorage.removeItem("rememberedEmail");
       }
 
-      // Create FormData for OAuth2 password flow
       const formData = new FormData();
-      formData.append("username", email); // Backend expects 'username' field
+      formData.append("username", email);
       formData.append("password", password);
 
-      const response = await fetch("http://localhost:8000/users/login", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.detail || "Login failed");
-      }
-
-      const data = await response.json();
+      const loginRes = await apiClient.post("/users/login", formData);
+      const data = loginRes.data;
 
       // Store the access token
       localStorage.setItem("access_token", data.access_token);
 
-
       // Fetch user details using the token
-      const userRes = await fetch("http://localhost:8000/users/me", {
-        headers: {
-          Authorization: `Bearer ${data.access_token}`,
-        },
-      });
-
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        localStorage.setItem("user", JSON.stringify(userData));
+      const userRes = await apiClient.get("/users/me");
+      if (userRes.data) {
+        localStorage.setItem("user", JSON.stringify(userRes.data));
       }
 
       navigate("/dashboard");
-    } catch (err: any) {
-      setError(err.message || "Something went wrong. Please try again.");
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(axiosError.response?.data?.detail || axiosError.message || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

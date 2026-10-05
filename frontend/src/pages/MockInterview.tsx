@@ -1,17 +1,17 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
+import apiClient from "../api/apiClient";
 
 interface Message {
-  id: number;
+  id?: string | number;
   sender: "user" | "ai";
   content: string;
   timestamp: string;
 }
 
 interface Session {
-  id: number;
+  id: string | number;
   job_role: string;
   is_active: boolean;
 }
@@ -53,9 +53,7 @@ const MockInterview: React.FC = () => {
   const checkResumeHistory = async () => {
     setCheckingHistory(true);
     try {
-      const response = await axios.get("http://127.0.0.1:8000/career/history", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await apiClient.get("/career/history");
       // Extract unique domains from history
       const history = response.data;
       const roles = Array.from(
@@ -73,11 +71,9 @@ const MockInterview: React.FC = () => {
     if (!jobRole.trim()) return;
     setInitializing(true);
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/interview/sessions",
-        { job_role: jobRole },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiClient.post("/interview/sessions", {
+        job_role: jobRole,
+      });
       setSession(response.data);
       // Fetch initial greeting
       fetchMessages(response.data.id);
@@ -89,11 +85,10 @@ const MockInterview: React.FC = () => {
     }
   };
 
-  const fetchMessages = async (sessionId: number) => {
+  const fetchMessages = async (sessionId: string | number) => {
     try {
-      const response = await axios.get(
-        `http://127.0.0.1:8000/interview/sessions/${sessionId}/messages`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiClient.get(
+        `/interview/sessions/${sessionId}/messages`
       );
       setMessages(response.data);
     } catch (error) {
@@ -116,10 +111,9 @@ const MockInterview: React.FC = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `http://127.0.0.1:8000/interview/sessions/${session.id}/chat`,
-        { message: tempMsg.content },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const response = await apiClient.post(
+        `/interview/sessions/${session.id}/chat`,
+        { message: tempMsg.content }
       );
 
       setMessages((prev) => [...prev, response.data]);

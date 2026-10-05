@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import Layout from "../components/layout/Layout";
 import { Modal, Button } from "react-bootstrap";
 import ReactMarkdown from "react-markdown";
+import apiClient from "../api/apiClient";
 
 // Types
 interface RoadmapStep {
-  id?: number;
+  id?: string | number;
   step_title: string; // From API (Generator)
   title?: string; // From DB (Active)
   description: string;
@@ -16,7 +16,7 @@ interface RoadmapStep {
 }
 
 interface CareerRoadmap {
-  id?: number;
+  id?: string | number;
   role: string;
   steps: RoadmapStep[];
 }
@@ -68,24 +68,14 @@ const CareerGuidance: React.FC = () => {
     setCheckingHistory(true);
     try {
       // 1. Fetch Resume History (Roles)
-      const historyRes = await axios.get(
-        "http://127.0.0.1:8000/career/history",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const historyRes = await apiClient.get("/career/history");
       const roles = Array.from(
         new Set(historyRes.data.map((item: any) => item.domain))
       ).filter((r: any) => r && r !== "N/A") as string[];
       setAvailableRoles(roles);
 
       // 2. Fetch Active Roadmap (if any)
-      const activeRes = await axios.get(
-        "http://127.0.0.1:8000/guidance/active",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const activeRes = await apiClient.get("/guidance/active");
 
       if (activeRes.data) {
         setActiveRoadmap(activeRes.data);
@@ -102,11 +92,9 @@ const CareerGuidance: React.FC = () => {
     setLoading(true);
     setPreviewRoadmap(null);
     try {
-      const response = await axios.post(
-        "http://127.0.0.1:8000/guidance/generate",
-        { job_role: selectedRole },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const response = await apiClient.post("/guidance/generate", {
+        job_role: selectedRole,
+      });
       setPreviewRoadmap(response.data);
       setCurrentView("roadmap"); // Switch to view the new preview
     } catch (error) {
@@ -121,9 +109,7 @@ const CareerGuidance: React.FC = () => {
     if (!previewRoadmap) return;
     setLoading(true);
     try {
-      await axios.post("http://127.0.0.1:8000/guidance/save", previewRoadmap, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await apiClient.post("/guidance/save", previewRoadmap);
       // Reload active roadmap and switch to it
       await loadDashboardData();
       setPreviewRoadmap(null);
@@ -135,13 +121,11 @@ const CareerGuidance: React.FC = () => {
     }
   };
 
-  const updateStatus = async (stepId: number, newStatus: string) => {
+  const updateStatus = async (stepId: string | number, newStatus: string) => {
     try {
-      await axios.patch(
-        `http://127.0.0.1:8000/guidance/steps/${stepId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await apiClient.patch(`/guidance/steps/${stepId}`, {
+        status: newStatus,
+      });
       // Optimistic update for active roadmap
       if (activeRoadmap) {
         const updatedSteps = activeRoadmap.steps.map((s) =>
@@ -163,11 +147,7 @@ const CareerGuidance: React.FC = () => {
       ? activeRoadmap.role
       : previewRoadmap?.role || "General";
     try {
-      const res = await axios.post(
-        "http://127.0.0.1:8000/guidance/details",
-        { topic, role },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await apiClient.post("/guidance/details", { topic, role });
       setDetailContent(res.data.content);
     } catch (error) {
       setDetailContent("Failed to load details.");
@@ -184,11 +164,7 @@ const CareerGuidance: React.FC = () => {
     setShowQuizModal(true);
     setQuizLoading(true);
     try {
-      const res = await axios.post(
-        "http://127.0.0.1:8000/guidance/quiz",
-        { topic },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await apiClient.post("/guidance/quiz", { topic });
       setQuizQuestions(res.data);
     } catch (error) {
       console.error("Error loading quiz");

@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/layout/Layout";
+import apiClient from "../api/apiClient";
 
 const Dashboard: React.FC = () => {
   const [hasResume, setHasResume] = React.useState<boolean>(false);
@@ -14,15 +15,9 @@ const Dashboard: React.FC = () => {
         return;
       }
       try {
-        const response = await fetch("http://localhost:8000/career/history", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setHasResume(data && data.length > 0);
-        }
+        const response = await apiClient.get("/career/history");
+        const data = response.data;
+        setHasResume(data && data.length > 0);
       } catch (error) {
         console.error("Failed to check history", error);
       } finally {

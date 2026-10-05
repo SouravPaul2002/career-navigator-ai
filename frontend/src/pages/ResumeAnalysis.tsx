@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Layout from "../components/layout/Layout";
+import apiClient from "../api/apiClient";
 
 interface AnalysisResult {
   analysis: {
@@ -47,22 +48,11 @@ const ResumeAnalysis: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/career/analyze", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error("Analysis failed. Please try again.");
-      }
-
-      const data = await response.json();
-      setResult(data.data);
-    } catch (err: any) {
-      setError(err.message || "An error occurred during analysis.");
+      const response = await apiClient.post("/career/analyze", formData);
+      setResult(response.data.data);
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { data?: { detail?: string } }; message?: string };
+      setError(axiosError.response?.data?.detail || axiosError.message || "An error occurred during analysis.");
     } finally {
       setAnalyzing(false);
     }

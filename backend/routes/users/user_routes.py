@@ -1,7 +1,14 @@
+from datetime import timedelta
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from models import User, UserCreate, UserRead, Token, UserUpdate, PasswordChange
-from auth import get_password_hash, verify_password, create_access_token, get_current_user
+from auth import (
+    get_password_hash,
+    verify_password,
+    create_access_token,
+    get_current_user,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+)
 
 router = APIRouter()
 
@@ -25,7 +32,11 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token = create_access_token(data={"sub": user.email})
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires
+    )
     return {"access_token": access_token, "token_type": "bearer"}
 
 @router.get("/me", response_model=UserRead)
