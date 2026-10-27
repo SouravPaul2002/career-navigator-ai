@@ -1,0 +1,12 @@
+# Local-only
+ppt/
+
+# Secrets and local env
+.env
+*.env.local
+
+# Python / Node artifacts
+__pycache__/
+*.pyc
+node_modules/
+.venv/

@@ -11,7 +11,7 @@ class Contact(BaseModel):
 
 class Education(BaseModel):
     education: str = Field(description="The description of the education.")
-    scooling:str = Field(description="The description from where education is taken.")
+    schooling: str = Field(description="The institution or school where education was received.")
     year: int = Field(description="The year the education is available.")
 
 class Experience(BaseModel):
@@ -37,3 +37,11 @@ class RoadmapStep(BaseModel):
 class CareerRoadmap(BaseModel):
     role: str = Field(description="The job role this roadmap is for.")
     steps: List[RoadmapStep] = Field(description="Ordered list of steps to master this role.")
+
+class QuizQuestion(BaseModel):
+    question: str = Field(description="The question prompt.")
+    options: List[str] = Field(description="List of multiple choice options.")
+    correct_answer: str = Field(description="The correct answer matching one of the options.")
+
+class Quiz(BaseModel):
+    questions: List[QuizQuestion] = Field(description="List of quiz questions.")

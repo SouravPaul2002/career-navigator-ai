@@ -6,6 +6,7 @@ import ResumeAnalysis from './pages/ResumeAnalysis';
 import MockInterview from './pages/MockInterview';
 import CareerGuidance from './pages/CareerGuidance';
 import PastAnalyses from './pages/PastAnalyses';
+import Profile from './pages/Profile';
 import './App.css';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
           <Route path="/history" element={<PastAnalyses />} />
           <Route path="/mock-interview" element={<MockInterview />} />
           <Route path="/career-guidance" element={<CareerGuidance />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
     </Router>

@@ -1,4 +1,4 @@
-import PyPDF2
+from pypdf import PdfReader
 import re
 
 def clean_text(text):
@@ -16,9 +16,9 @@ def read_pdf(file_path):
     text = ""
     try:
         with open(file_path, 'rb') as file:
-            reader = PyPDF2.PdfReader(file)
+            reader = PdfReader(file)
             for page in reader.pages:
-                text += page.extract_text()
+                text += page.extract_text() or ""
         return {
             "status": True,
             "text":text

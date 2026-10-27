@@ -52,6 +52,8 @@ const MockInterview: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [showVoiceConfirm, setShowVoiceConfirm] = useState(false);
   const [voiceText, setVoiceText] = useState("");
+  const [voiceOutputEnabled, setVoiceOutputEnabled] = useState(true);
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | number | null>(null);
   const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
@@ -71,10 +73,40 @@ const MockInterview: React.FC = () => {
   }, [messages]);
 
   useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (token && !session) {
       checkResumeHistory();
     }
   }, [token, session]);
+
+  const speakText = (text: string, msgId?: string | number) => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    window.speechSynthesis.cancel();
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    if (msgId !== undefined) {
+      setSpeakingMessageId(msgId);
+    }
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopSpeaking = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      setSpeakingMessageId(null);
+    }
+  };
 
   const checkResumeHistory = async () => {
     setCheckingHistory(true);
@@ -101,8 +133,8 @@ const MockInterview: React.FC = () => {
         job_role: jobRole,
       });
       setSession(response.data);
-      // Fetch initial greeting
-      fetchMessages(response.data.id);
+      // Fetch initial greeting with auto-speak if enabled
+      fetchMessages(response.data.id, true);
     } catch (error) {
       console.error("Error starting session:", error);
       alert("Failed to start session. Please try again.");
@@ -111,12 +143,18 @@ const MockInterview: React.FC = () => {
     }
   };
 
-  const fetchMessages = async (sessionId: string | number) => {
+  const fetchMessages = async (sessionId: string | number, autoSpeak = false) => {
     try {
       const response = await apiClient.get(
         `/interview/sessions/${sessionId}/messages`
       );
       setMessages(response.data);
+      if (autoSpeak && voiceOutputEnabled && response.data.length > 0) {
+        const lastMsg = response.data[response.data.length - 1];
+        if (lastMsg.sender === "ai") {
+          speakText(lastMsg.content, lastMsg.id);
+        }
+      }
     } catch (error) {
       console.error("Error fetching messages:", error);
     }
@@ -143,6 +181,9 @@ const MockInterview: React.FC = () => {
       );
 
       setMessages((prev) => [...prev, response.data]);
+      if (voiceOutputEnabled && response.data?.content) {
+        speakText(response.data.content, response.data.id);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
       alert("Failed to send message.");
@@ -361,12 +402,38 @@ const MockInterview: React.FC = () => {
                   Live Session
                 </small>
               </div>
-              <button
-                className="btn btn-outline-danger btn-sm"
-                onClick={() => setSession(null)}
-              >
-                End Session
-              </button>
+              <div className="d-flex align-items-center gap-2">
+                {"speechSynthesis" in window && (
+                  <button
+                    className={`btn btn-sm rounded-pill px-3 ${
+                      voiceOutputEnabled ? "btn-primary" : "btn-outline-secondary"
+                    }`}
+                    onClick={() => {
+                      if (voiceOutputEnabled) {
+                        stopSpeaking();
+                      }
+                      setVoiceOutputEnabled(!voiceOutputEnabled);
+                    }}
+                    title={voiceOutputEnabled ? "Voice Output is Enabled" : "Voice Output is Disabled"}
+                  >
+                    <i
+                      className={`bi ${
+                        voiceOutputEnabled ? "bi-volume-up-fill" : "bi-volume-mute-fill"
+                      } me-1`}
+                    ></i>
+                    {voiceOutputEnabled ? "Audio On" : "Audio Muted"}
+                  </button>
+                )}
+                <button
+                  className="btn btn-outline-danger btn-sm rounded-pill px-3"
+                  onClick={() => {
+                    stopSpeaking();
+                    setSession(null);
+                  }}
+                >
+                  End Session
+                </button>
+              </div>
             </div>
 
             <div
@@ -405,7 +472,31 @@ const MockInterview: React.FC = () => {
                         msg.sender === "ai" ? "0" : "1rem",
                     }}
                   >
-                    {msg.content}
+                    <div className="d-flex align-items-start justify-content-between gap-2">
+                      <span style={{ whiteSpace: "pre-wrap" }}>{msg.content}</span>
+                      {msg.sender === "ai" && "speechSynthesis" in window && (
+                        <button
+                          className="btn btn-sm btn-link p-0 border-0 ms-2"
+                          style={{ color: "inherit", opacity: 0.75, cursor: "pointer" }}
+                          onClick={() => {
+                            if (speakingMessageId === msg.id) {
+                              stopSpeaking();
+                            } else {
+                              speakText(msg.content, msg.id);
+                            }
+                          }}
+                          title={speakingMessageId === msg.id ? "Stop audio" : "Listen to response"}
+                        >
+                          <i
+                            className={`bi ${
+                              speakingMessageId === msg.id
+                                ? "bi-stop-circle-fill text-danger"
+                                : "bi-volume-up-fill text-primary"
+                            } fs-5`}
+                          ></i>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

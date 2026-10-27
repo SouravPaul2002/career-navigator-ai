@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import ThemeToggle from "../layout/ThemeToggle";
 
 interface User {
@@ -13,6 +14,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ title }) => {
   const [user, setUser] = useState<User | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get user data from localStorage
@@ -39,7 +41,12 @@ const Header: React.FC<HeaderProps> = ({ title }) => {
       <h1 className="dashboard-title">{title || "Dashboard"}</h1>
       <div className="header-actions">
         <ThemeToggle />
-        <div className="user-profile">
+        <div
+          className="user-profile"
+          style={{ cursor: "pointer" }}
+          onClick={() => navigate("/profile")}
+          title="Account Settings"
+        >
           <div className="avatar">{getInitial()}</div>
           <span className="user-name">{user?.name || "User"}</span>
         </div>

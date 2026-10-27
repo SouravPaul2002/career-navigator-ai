@@ -2,7 +2,7 @@ from enum import Enum
 import re
 from datetime import datetime, timezone
 from typing import Optional, List
-from beanie import Document, Indexed, PydanticObjectId
+from beanie import Document, Indexed
 from pydantic import BaseModel, Field, field_validator
 from bson import ObjectId
 

@@ -1,17 +1,8 @@
-import os
 from typing import List, Dict
-from langchain_google_genai import ChatGoogleGenerativeAI
+from llm import get_llm
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
 
-gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-if not gemini_key:
-    print("Warning: GEMINI_API_KEY not found. Mock interview features will fail.")
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=gemini_key or "dummy_key_for_dev_startup",
-    temperature=0.7 # Slight creativity for conversation
-)
+llm = get_llm(temperature=0.7)  # slight creativity for conversation
 
 def generate_interview_response(job_role: str, history: List[Dict[str, str]]) -> str:
     """

@@ -1,23 +1,14 @@
-import os
 from typing import TypedDict
 
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.constants import END
 from langgraph.graph import StateGraph
 
-# Assuming these are correct from your local files
-from ai_schema.schema import *
+from ai_schema.schema import JobAnalysisResult, Skills
+from llm import get_llm
 from utils.pdf_handler import read_pdf, clean_text
 
-gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-if not gemini_key:
-    print("Warning: GEMINI_API_KEY not found in environment. AI features will fail.")
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=gemini_key or "dummy_key_for_dev_startup"
-)
+llm = get_llm()
 
 
 # Define the state for the graph
@@ -38,7 +29,7 @@ def reading_agent(state: GraphState) -> GraphState:
         cleaned_text = clean_text(pdf["text"])
         state["resume_text"] = cleaned_text
     else:
-        print(f"Error reading PDF: {pdf.get('error')}")
+        print(f"Error reading PDF: {pdf.get('text')}")
         state["resume_text"] = None
     return state
 
@@ -123,22 +114,6 @@ graph.set_entry_point("reader")
 app = graph.compile()
 
 
-# def invoke_agent(file_path: str = "resume.pdf"):
-#     res = app.invoke({
-#         'file_name': file_path,
-#         'resume_text': None,
-#         'extracted_skills': None,
-#         'analysis_result': None
-#     })
-    
-#     extracted: Skills = res["extracted_skills"]
-#     analysis: JobAnalysisResult = res["analysis_result"]
-    
-#     result = {
-#         "analysis": analysis,
-#         "extracted_skills": extracted
-#     }
-#     return result
 def invoke_agent(file_path: str):
     res = app.invoke({
         "file_name": file_path,
@@ -154,9 +129,3 @@ def invoke_agent(file_path: str):
         "analysis": analysis.model_dump() if analysis else {},
         "extracted_skills": extracted.model_dump() if extracted else {}
     }
-
-
-
-if __name__ == "__main__":
-    res = invoke_agent()
-    print(res)

@@ -1,28 +1,9 @@
-import os
-import json
 from typing import Optional, List, Dict
 from langchain_core.prompts import ChatPromptTemplate
-from langchain_google_genai import ChatGoogleGenerativeAI
-from ai_schema.schema import CareerRoadmap
-from pydantic import BaseModel, Field
+from ai_schema.schema import CareerRoadmap, Quiz, QuizQuestion
+from llm import get_llm
 
-gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-if not gemini_key:
-    print("Warning: GEMINI_API_KEY not found. Career guidance features will fail.")
-
-llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash",
-    google_api_key=gemini_key or "dummy_key_for_dev_startup",
-    temperature=0.7 
-)
-
-class QuizQuestion(BaseModel):
-    question: str
-    options: List[str]
-    correct_answer: str
-
-class Quiz(BaseModel):
-    questions: List[QuizQuestion]
+llm = get_llm(temperature=0.7)
 
 def generate_roadmap(job_role: str) -> Optional[CareerRoadmap]:
     """Generates a career roadmap for a specific job role."""

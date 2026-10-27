@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
-from typing import List, Optional
+from typing import List
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from auth import get_current_user
 from models import User, UserRoadmap, UserRoadmapStep, StepStatus
@@ -34,7 +35,7 @@ async def generate_career_roadmap_endpoint(
 ):
     if not request.job_role.strip():
         raise HTTPException(status_code=400, detail="Job role cannot be empty.")
-    roadmap = generate_roadmap(request.job_role)
+    roadmap = await run_in_threadpool(generate_roadmap, request.job_role)
     if not roadmap:
         raise HTTPException(status_code=500, detail="Failed to generate roadmap.")
     return roadmap
@@ -140,7 +141,7 @@ async def get_details(
     current_user: User = Depends(get_current_user)
 ):
     """Get detailed explanation for a topic."""
-    details = get_topic_details(request.topic, request.role)
+    details = await run_in_threadpool(get_topic_details, request.topic, request.role)
     return {"content": details}
 
 @router.post("/quiz")
@@ -149,5 +150,5 @@ async def get_quiz(
     current_user: User = Depends(get_current_user)
 ):
     """Get a quiz for a topic."""
-    questions = generate_quiz(request.topic)
+    questions = await run_in_threadpool(generate_quiz, request.topic)
     return questions

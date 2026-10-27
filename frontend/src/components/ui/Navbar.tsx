@@ -176,6 +176,25 @@ const Navbar: React.FC<{ disabled?: boolean; restrictedMode?: boolean }> = ({
           <div className="nav-divider"></div>
           <ul className="nav-menu-list">
             <li className="nav-item">
+              <a
+                href="/profile"
+                className={`nav-link ${
+                  isActiveLink("/profile") ? "active" : ""
+                }`}
+              >
+                <div className="nav-icon-wrapper">
+                  <span className="nav-icon">
+                    <i className="bi bi-person-gear"></i>
+                  </span>
+                </div>
+                <span
+                  className={`nav-text ${isSidebarCollapsed ? "hidden" : ""}`}
+                >
+                  Account Settings
+                </span>
+              </a>
+            </li>
+            <li className="nav-item">
               <button
                 onClick={handleLogout}
                 className="nav-link text-start border-0 bg-transparent"

@@ -7,6 +7,7 @@ from auth import get_current_user
 from models import User, InterviewSession, InterviewMessage
 from interview_agent import generate_interview_response
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 router = APIRouter()
 
@@ -109,7 +110,7 @@ async def chat(
     history_dicts = [{"sender": msg.sender, "content": msg.content} for msg in session.messages]
     
     # 3. Generate AI Response
-    ai_response_text = generate_interview_response(session.job_role, history_dicts)
+    ai_response_text = await run_in_threadpool(generate_interview_response, session.job_role, history_dicts)
     
     # 4. Save AI Response
     ai_msg = InterviewMessage(
